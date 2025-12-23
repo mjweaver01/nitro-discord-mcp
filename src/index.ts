@@ -1,6 +1,7 @@
 import {
   Client,
   GatewayIntentBits,
+  Partials,
   REST,
   Routes,
   Events,
@@ -10,27 +11,32 @@ import { handleMessage } from './handlers/message';
 import { handleInteraction, getCommandsData } from './handlers/interaction';
 
 // Validate environment variables
-const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
-const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
-
-if (!DISCORD_TOKEN) {
+if (!process.env.DISCORD_TOKEN) {
   throw new Error('DISCORD_TOKEN environment variable is required');
 }
 
-if (!DISCORD_CLIENT_ID) {
+if (!process.env.DISCORD_CLIENT_ID) {
   throw new Error('DISCORD_CLIENT_ID environment variable is required');
 }
+
+const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
+const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 
 // Initialize the Nitro MCP client
 const nitro = new NitroMCPClient();
 
-// Create Discord client with required intents
+// Create Discord client with required intents and partials
 const client = new Client({
   intents: [
     GatewayIntentBits.Guilds,
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+  ],
+  partials: [
+    Partials.Message,
+    Partials.Channel,
+    Partials.User,
   ],
 });
 
@@ -69,7 +75,7 @@ client.on(Events.InteractionCreate, async interaction => {
   await handleInteraction(interaction, nitro);
 });
 
-// Event: Message (for mentions)
+// Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);

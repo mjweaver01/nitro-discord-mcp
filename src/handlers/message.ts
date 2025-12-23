@@ -13,12 +13,13 @@ export async function handleMessage(
   if (message.author.bot) return;
 
   // Check if the bot is mentioned
-  const isMentioned = message.mentions.has(botId);
+  const isMentioned = message.mentions.users.has(botId);
   const isInThread = message.channel.type === ChannelType.PublicThread ||
                      message.channel.type === ChannelType.PrivateThread;
+  const isDM = message.channel.type === ChannelType.DM;
 
-  // Only respond if mentioned, or if in a thread where the bot is participating
-  if (!isMentioned && !isInThread) return;
+  // Respond if: mentioned in a channel, in a participating thread, or in DMs
+  if (!isMentioned && !isInThread && !isDM) return;
 
   // If in a thread but not mentioned, check if bot has participated before
   if (isInThread && !isMentioned) {
