@@ -1,0 +1,16 @@
+{
+  "name": "nitro-discord",
+  "version": "1.0.0",
+  "description": "Discord bot that integrates with Nitro AI chatbot via MCP",
+  "type": "module",
+  "scripts": {
+    "start": "bun run src/index.ts",
+    "dev": "bun --watch run src/index.ts"
+  },
+  "dependencies": {
+    "discord.js": "^14.16.3"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.1.14"
+  }
+}
