@@ -173,14 +173,29 @@ export class NitroMCPClient {
   }
 
   /**
+   * Convert a Discord snowflake ID to a valid UUID format
+   * Creates a deterministic UUID from the Discord ID for consistent user tracking
+   */
+  private discordIdToUuid(discordId: string): string {
+    // Pad the Discord ID with zeros and format as UUID
+    const hex = BigInt(discordId).toString(16).padStart(32, '0');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`;
+  }
+
+  /**
    * Ask Nitro AI a question
    */
   async askNitro(params: NitroQuestion): Promise<string> {
+    // Convert Discord ID to UUID format if provided
+    const userId = params.user_id 
+      ? this.discordIdToUuid(params.user_id) 
+      : crypto.randomUUID();
+
     const result = await this.makeRequest<NitroResponse>('tools/call', {
       name: 'ask-nitro',
       arguments: {
         question: params.question,
-        user_id: params.user_id || crypto.randomUUID(),
+        user_id: userId,
         email: params.email,
         model: params.model,
       },
