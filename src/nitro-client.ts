@@ -119,9 +119,10 @@ export class NitroMCPClient {
    */
   private async makeRequest<T = unknown>(
     method: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    timeoutMs: number = 120000 // 2 minute timeout
   ): Promise<T> {
-    console.log('Asking Nitro MCP', method, params);
+    console.log('Asking Nitro MCP', method, JSON.stringify(params).slice(0, 200));
 
     const request: MCPRequest = {
       jsonrpc: '2.0',
@@ -132,6 +133,10 @@ export class NitroMCPClient {
 
     const url = `${this.baseUrl}?api_key=${encodeURIComponent(this.apiKey)}`;
 
+    // Create abort controller for timeout
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
     try {
       const response = await fetch(url, {
         method: 'POST',
@@ -140,6 +145,7 @@ export class NitroMCPClient {
           Accept: 'application/json, text/event-stream',
         },
         body: JSON.stringify(request),
+        signal: controller.signal,
       });
 
       if (!response.ok) {
@@ -165,8 +171,14 @@ export class NitroMCPClient {
 
       return data.result as T;
     } catch (error) {
+      if (error instanceof Error && error.name === 'AbortError') {
+        console.error('MCP request timed out after', timeoutMs, 'ms');
+        throw new Error('Request timed out. Please try again.');
+      }
       console.error('MCP request failed:', error);
       throw error;
+    } finally {
+      clearTimeout(timeoutId);
     }
   }
 
