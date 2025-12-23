@@ -11,7 +11,8 @@ commands.set(askCommand.data.name, askCommand);
  */
 export async function handleInteraction(
   interaction: Interaction,
-  nitro: NitroMCPClient
+  nitro: NitroMCPClient,
+  botId: string
 ): Promise<void> {
   // Only handle slash commands
   if (!interaction.isChatInputCommand()) return;
@@ -24,7 +25,7 @@ export async function handleInteraction(
   }
 
   try {
-    await command.execute(interaction as ChatInputCommandInteraction, nitro);
+    await command.execute(interaction as ChatInputCommandInteraction, nitro, botId);
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
 

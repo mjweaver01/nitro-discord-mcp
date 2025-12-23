@@ -3,7 +3,7 @@ import {
   ChatInputCommandInteraction,
   ChannelType,
 } from 'discord.js';
-import type { NitroMCPClient } from '../nitro-client';
+import type { NitroMCPClient, NitroMessage } from '../nitro-client';
 
 export const data = new SlashCommandBuilder()
   .setName('ask')
@@ -21,9 +21,39 @@ export const data = new SlashCommandBuilder()
       .setRequired(false)
   );
 
+/**
+ * Get conversation history if in a thread
+ */
+async function getThreadHistory(
+  interaction: ChatInputCommandInteraction,
+  botId: string
+): Promise<NitroMessage[]> {
+  const channel = interaction.channel;
+  
+  // Only fetch history if in a thread
+  if (!channel || (channel.type !== ChannelType.PublicThread && channel.type !== ChannelType.PrivateThread)) {
+    return [];
+  }
+
+  try {
+    const messages = await channel.messages.fetch({ limit: 20 });
+    const sortedMessages = [...messages.values()].reverse();
+
+    return sortedMessages
+      .filter(msg => msg.content.trim().length > 0)
+      .map(msg => ({
+        role: msg.author.id === botId ? 'assistant' as const : 'user' as const,
+        content: msg.content.trim(),
+      }));
+  } catch {
+    return [];
+  }
+}
+
 export async function execute(
   interaction: ChatInputCommandInteraction,
-  nitro: NitroMCPClient
+  nitro: NitroMCPClient,
+  botId: string
 ): Promise<void> {
   const question = interaction.options.getString('question', true);
   const createThread = interaction.options.getBoolean('thread') ?? false;
@@ -38,8 +68,14 @@ export async function execute(
 
     console.log(`[/ask] User ${userTag} (${userId}) asked: ${question}`);
 
-    // Ask Nitro
-    const response = await nitro.ask(question, userId);
+    // Get conversation history if in a thread
+    const history = await getThreadHistory(interaction, botId);
+    if (history.length > 0) {
+      console.log(`[/ask] Including ${history.length} messages from thread history`);
+    }
+
+    // Ask Nitro with history
+    const response = await nitro.ask(question, userId, undefined, history);
 
     // Handle Discord's 2000 character limit
     const chunks = splitMessage(response);

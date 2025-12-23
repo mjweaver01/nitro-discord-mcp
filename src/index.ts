@@ -72,7 +72,8 @@ client.once(Events.ClientReady, async readyClient => {
 
 // Event: Slash command interaction
 client.on(Events.InteractionCreate, async interaction => {
-  await handleInteraction(interaction, nitro);
+  if (!client.user) return;
+  await handleInteraction(interaction, nitro, client.user.id);
 });
 
 // Event: Message (for mentions and DMs)

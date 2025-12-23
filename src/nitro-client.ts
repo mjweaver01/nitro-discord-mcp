@@ -37,11 +37,17 @@ interface MCPTool {
   };
 }
 
+export interface NitroMessage {
+  role: 'user' | 'assistant' | 'system';
+  content: string;
+}
+
 interface NitroQuestion {
   question: string;
   user_id?: string;
   email?: string;
   model?: string;
+  messages?: NitroMessage[];
 }
 
 interface NitroResponse {
@@ -198,6 +204,7 @@ export class NitroMCPClient {
         user_id: userId,
         email: params.email,
         model: params.model,
+        messages: params.messages,
       },
     });
 
@@ -221,13 +228,14 @@ export class NitroMCPClient {
   async ask(
     question: string,
     userId?: string,
-    email?: string
+    email?: string,
+    messages?: NitroMessage[]
   ): Promise<string> {
     return this.askNitro({
       question,
       user_id: userId,
       email,
+      messages,
     });
   }
 }
-

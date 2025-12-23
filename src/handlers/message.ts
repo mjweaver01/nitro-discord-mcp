@@ -1,5 +1,53 @@
 import { Message, ChannelType } from 'discord.js';
-import type { NitroMCPClient } from '../nitro-client';
+import type { NitroMCPClient, NitroMessage } from '../nitro-client';
+
+/**
+ * Fetch conversation history from the channel
+ * Returns messages formatted for Nitro AI
+ */
+async function getConversationHistory(
+  message: Message,
+  botId: string,
+  limit: number = 20
+): Promise<NitroMessage[]> {
+  const channel = message.channel;
+  
+  // Check if channel supports fetching messages
+  if (!('messages' in channel)) {
+    return [];
+  }
+
+  try {
+    // Fetch recent messages before the current one
+    const messages = await channel.messages.fetch({ 
+      limit, 
+      before: message.id 
+    });
+
+    // Convert to array and reverse to get chronological order
+    const sortedMessages = [...messages.values()].reverse();
+
+    // Remove the bot mention pattern for cleaner history
+    const mentionPattern = new RegExp(`<@!?${botId}>`, 'g');
+
+    // Format messages for Nitro
+    const history: NitroMessage[] = sortedMessages
+      .filter(msg => {
+        // Include messages from the bot or messages that mention/interact with the bot
+        const content = msg.content.replace(mentionPattern, '').trim();
+        return content.length > 0;
+      })
+      .map(msg => ({
+        role: msg.author.id === botId ? 'assistant' as const : 'user' as const,
+        content: msg.content.replace(mentionPattern, '').trim(),
+      }));
+
+    return history;
+  } catch (error) {
+    console.error('Failed to fetch conversation history:', error);
+    return [];
+  }
+}
 
 /**
  * Handle messages where the bot is mentioned
@@ -62,8 +110,20 @@ export async function handleMessage(
 
     console.log(`[@mention] User ${message.author.tag} asked: ${question}`);
 
-    // Ask Nitro with user tracking
-    const response = await nitro.ask(question, message.author.id);
+    // Only fetch conversation history if:
+    // - In a thread (always include context)
+    // - User is replying to a message (has message.reference)
+    const isReply = !!message.reference;
+    const shouldIncludeHistory = isInThread || isReply;
+
+    let conversationHistory: NitroMessage[] = [];
+    if (shouldIncludeHistory) {
+      conversationHistory = await getConversationHistory(message, botId);
+      console.log(`[@mention] Including ${conversationHistory.length} previous messages for context`);
+    }
+
+    // Ask Nitro with user tracking and conversation history
+    const response = await nitro.ask(question, message.author.id, undefined, conversationHistory);
 
     // Clear typing indicator
     clearInterval(typingInterval);
