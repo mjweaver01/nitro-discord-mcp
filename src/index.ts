@@ -32,11 +32,13 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMessageReactions, // For better message tracking
   ],
   partials: [
     Partials.Message,
     Partials.Channel,
     Partials.User,
+    Partials.Reaction,
   ],
 });
 
@@ -63,11 +65,14 @@ async function registerCommands(): Promise<void> {
 // Event: Bot is ready
 client.once(Events.ClientReady, async readyClient => {
   console.log(`Logged in as ${readyClient.user.tag}`);
+  console.log(`Bot ID: ${readyClient.user.id}`);
+  console.log(`Intents: ${client.options.intents}`);
   
   // Register slash commands on startup
   await registerCommands();
   
   console.log('Nitro Discord Bot is ready!');
+  console.log('Listening for messages...');
 });
 
 // Event: Slash command interaction
@@ -78,6 +83,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
 // Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
+  console.log('[MessageCreate Event] Received message from:', message.author.tag, 'in channel:', message.channel.type, 'content:', message.content.slice(0, 50));
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);
 });
