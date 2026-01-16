@@ -14,15 +14,20 @@ async function getConversationHistory(
   
   // Check if channel supports fetching messages
   if (!('messages' in channel)) {
+    console.log('[Debug] Channel does not support message fetching');
     return [];
   }
 
   try {
+    console.log(`[Debug] Fetching up to ${limit} messages for conversation history`);
+    
     // Fetch recent messages before the current one
     const messages = await channel.messages.fetch({ 
       limit, 
       before: message.id 
     });
+
+    console.log(`[Debug] Fetched ${messages.size} messages`);
 
     // Convert to array and reverse to get chronological order
     const sortedMessages = [...messages.values()].reverse();
@@ -33,15 +38,35 @@ async function getConversationHistory(
     // Format messages for Nitro
     const history: NitroMessage[] = sortedMessages
       .filter(msg => {
-        // Include messages from the bot or messages that mention/interact with the bot
+        // Skip bot messages from other bots
+        if (msg.author.bot && msg.author.id !== botId) {
+          return false;
+        }
+        
+        // Include all bot messages and user messages with content
         const content = msg.content.replace(mentionPattern, '').trim();
-        return content.length > 0;
+        
+        // Include the message if:
+        // - It's from the bot (always include bot responses)
+        // - It has content after removing mentions
+        const shouldInclude = msg.author.id === botId || content.length > 0;
+        
+        if (!shouldInclude) {
+          console.log(`[Debug] Filtering out message from ${msg.author.tag}: empty after mention removal`);
+        }
+        
+        return shouldInclude;
       })
-      .map(msg => ({
-        role: msg.author.id === botId ? 'assistant' as const : 'user' as const,
-        content: msg.content.replace(mentionPattern, '').trim(),
-      }));
+      .map(msg => {
+        const cleanContent = msg.content.replace(mentionPattern, '').trim();
+        return {
+          role: msg.author.id === botId ? 'assistant' as const : 'user' as const,
+          content: cleanContent || msg.content.trim(), // Fallback to original if empty after mention removal
+        };
+      });
 
+    console.log(`[Debug] Formatted ${history.length} messages for conversation history`);
+    
     return history;
   } catch (error) {
     console.error('Failed to fetch conversation history:', error);
@@ -65,31 +90,56 @@ export async function handleMessage(
   const isInThread = message.channel.type === ChannelType.PublicThread ||
                      message.channel.type === ChannelType.PrivateThread;
   const isDM = message.channel.type === ChannelType.DM;
+  
+  // Check if this is a reply to one of the bot's messages
+  let isReplyToBot = false;
+  if (message.reference) {
+    try {
+      const referencedMessage = await message.fetchReference();
+      isReplyToBot = referencedMessage.author.id === botId;
+      console.log(`[Debug] Message is a reply to bot: ${isReplyToBot}`);
+    } catch (error) {
+      console.log('[Debug] Could not fetch referenced message:', error);
+    }
+  }
 
-  // Respond if: mentioned in a channel, in a participating thread, or in DMs
-  if (!isMentioned && !isInThread && !isDM) return;
+  console.log(`[Debug] Message check - Mentioned: ${isMentioned}, InThread: ${isInThread}, DM: ${isDM}, ReplyToBot: ${isReplyToBot}`);
 
-  // If in a thread but not mentioned, check if bot has participated before
-  if (isInThread && !isMentioned) {
+  // Respond if: mentioned in a channel, in a participating thread, in DMs, OR replying to bot
+  if (!isMentioned && !isInThread && !isDM && !isReplyToBot) {
+    console.log('[Debug] Ignoring message - no trigger conditions met');
+    return;
+  }
+
+  // If in a thread but not mentioned and not replying to bot, check if bot has participated before
+  if (isInThread && !isMentioned && !isReplyToBot) {
     // For threads, we'll respond to all messages once we've been mentioned once
     // This creates a conversational experience in threads
     const thread = message.channel;
-    const starterMessage = await thread.fetchStarterMessage().catch(() => null);
     
-    // Only auto-respond in threads if the starter message mentions the bot
-    // or if the bot has already sent a message in this thread
+    console.log(`[Debug] In thread, checking participation...`);
+    
+    // Check if we've already joined/participated in this thread
     const messages = await thread.messages.fetch({ limit: 50 });
     const botHasParticipated = messages.some(m => m.author.id === botId);
     
-    if (!botHasParticipated) return;
+    if (!botHasParticipated) {
+      console.log('[Debug] Bot has not participated in this thread, ignoring');
+      return;
+    }
+    
+    console.log('[Debug] Bot has participated in thread, will respond');
   }
 
   // Extract the question by removing the bot mention
   const mentionPattern = new RegExp(`<@!?${botId}>`, 'g');
   const question = message.content.replace(mentionPattern, '').trim();
 
+  console.log(`[Debug] Extracted question: "${question}" (original: "${message.content}")`);
+
   // Ignore empty messages
   if (!question) {
+    console.log('[Debug] Empty question, sending greeting');
     await message.reply("Hi! Ask me anything and I'll help you out.");
     return;
   }
@@ -113,8 +163,11 @@ export async function handleMessage(
     // Only fetch conversation history if:
     // - In a thread (always include context)
     // - User is replying to a message (has message.reference)
+    // - User is replying to the bot specifically
     const isReply = !!message.reference;
-    const shouldIncludeHistory = isInThread || isReply;
+    const shouldIncludeHistory = isInThread || isReply || isReplyToBot;
+
+    console.log(`[Debug] Should include history: ${shouldIncludeHistory} (isInThread: ${isInThread}, isReply: ${isReply}, isReplyToBot: ${isReplyToBot})`);
 
     let conversationHistory: NitroMessage[] = [];
     if (shouldIncludeHistory) {
