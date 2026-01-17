@@ -89,13 +89,24 @@ client.once(Events.ClientReady, async readyClient => {
 
 // Event: Slash command interaction
 client.on(Events.InteractionCreate, async interaction => {
+  // LOG ALL INTERACTIONS
+  console.log(`[Interaction] Type: ${interaction.type}, ID: ${interaction.id}`);
+  
+  if (!interaction.isChatInputCommand()) {
+    console.log(`[Interaction] Non-command interaction detected:`, JSON.stringify(interaction).slice(0, 200));
+  }
+
   if (!client.user) return;
   await handleInteraction(interaction, nitro, client.user.id);
 });
 
 // Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
-  console.log(`[Event] Message received from ${message.author.tag}: ${message.content}`);
+  if (message.author.id === client.user?.id) return;
+  
+  // LOG ALL MESSAGES
+  console.log(`[Message] From: ${message.author.tag}, Content: "${message.content}"`);
+  
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);
 });
