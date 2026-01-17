@@ -77,7 +77,16 @@ client.on(Events.InteractionCreate, async interaction => {
 
 // Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
-  console.log(`[Event] Message received from ${message.author.tag}: ${message.content}`);
+  const isSelf = message.author.id === client.user?.id;
+  if (isSelf) return;
+
+  console.log(`[Event] Message received!`);
+  console.log(`- From: ${message.author.tag} (${message.author.id})`);
+  console.log(`- Channel: ${message.channel.name || 'DM'} (${message.channel.id})`);
+  console.log(`- Type: ${message.channel.type}`);
+  console.log(`- Content: ${message.content}`);
+  console.log(`- Mentions Bot: ${message.mentions.users.has(client.user?.id || '')}`);
+  
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);
 });
