@@ -65,63 +65,16 @@ async function registerCommands(): Promise<void> {
 
 // Event: Bot is ready
 client.once(Events.ClientReady, async readyClient => {
-  console.log('='.repeat(50));
-  console.log(`✅ BOT CONNECTED: ${readyClient.user.tag}`);
-  console.log(`🆔 ID: ${readyClient.user.id}`);
+  console.log(`Logged in as ${readyClient.user.tag}`);
   
-  // LOG THE INTENTS GRANTED BY DISCORD
-  const intentBits = Number(client.options.intents);
-  console.log(`🔢 Intent Bitmask: ${intentBits}`);
-  console.log(`📜 Has MessageContent Intent: ${(intentBits & Number(GatewayIntentBits.MessageContent)) !== 0}`);
-  
-  // CHECK CHANNEL ACCESS
-  console.log('\n--- CHANNEL ACCESS CHECK ---');
-  client.guilds.cache.forEach(guild => {
-    console.log(`Guild: ${guild.name} (${guild.id})`);
-    guild.channels.cache.filter(c => c.isTextBased()).forEach(ch => {
-      const me = guild.members.me;
-      const canSee = me ? ch.permissionsFor(me).has('ViewChannel') : false;
-      const canReadHistory = me ? ch.permissionsFor(me).has('ReadMessageHistory') : false;
-      console.log(`  #${ch.name}: [View: ${canSee}] [History: ${canReadHistory}]`);
-    });
-  });
-  console.log('='.repeat(50));
-  
+  // Register slash commands on startup
   await registerCommands();
-  console.log('Nitro Discord Bot is ready!');
-});
-
-// DIAGNOSTIC: Log when a guild becomes available
-client.on(Events.GuildCreate, guild => {
-  console.log(`\n[Diagnostic] Guild Available: ${guild.name} (${guild.id})`);
   
-  // Find the 'nitro' channel and check permissions
-  const nitroChannel = guild.channels.cache.find(c => c.name.toLowerCase() === 'nitro');
-  if (nitroChannel && nitroChannel.isTextBased()) {
-    const me = guild.members.me;
-    if (me) {
-      const perms = me.permissionsIn(nitroChannel);
-      console.log(`[Diagnostic] My permissions in #nitro:`);
-      console.log(`- View Channel: ${perms.has('ViewChannel')}`);
-      console.log(`- Send Messages: ${perms.has('SendMessages')}`);
-      console.log(`- Read History: ${perms.has('ReadMessageHistory')}`);
-      console.log(`- Use Slash Commands: ${perms.has('UseApplicationCommands')}`);
-    }
-  } else {
-    console.log(`[Diagnostic] Could not find #nitro channel in this guild.`);
-    console.log(`[Diagnostic] Available channels: ${guild.channels.cache.filter(c => c.isTextBased()).map(c => c.name).join(', ')}`);
-  }
+  console.log('Nitro Discord Bot is ready!');
 });
 
 // Event: Slash command interaction
 client.on(Events.InteractionCreate, async interaction => {
-  // LOG ALL INTERACTIONS
-  console.log(`[Interaction] Type: ${interaction.type}, ID: ${interaction.id}`);
-  
-  if (!interaction.isChatInputCommand()) {
-    console.log(`[Interaction] Non-command interaction detected:`, JSON.stringify(interaction).slice(0, 200));
-  }
-
   if (!client.user) return;
   await handleInteraction(interaction, nitro, client.user.id);
 });
@@ -129,10 +82,6 @@ client.on(Events.InteractionCreate, async interaction => {
 // Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
   if (message.author.id === client.user?.id) return;
-  
-  // LOG ALL MESSAGES
-  console.log(`[Message] From: ${message.author.tag}, Content: "${message.content}"`);
-  
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);
 });
@@ -146,19 +95,6 @@ process.on('unhandledRejection', error => {
   console.error('Unhandled promise rejection:', error);
 });
 
-// Debug: Log all raw gateway packets
-client.on('raw', packet => {
-  if (packet.t) {
-    console.log(`[Raw Gateway] Received Packet: ${packet.t}`);
-  }
-});
-
-// Deep Debug: Log internal discord.js events
-client.on('debug', info => {
-  console.log(`[Discord.js Debug] ${info}`);
-});
-
 // Start the bot
-console.log('--- DEBUG VERSION 2.0 STARTING ---');
 client.login(DISCORD_TOKEN);
 

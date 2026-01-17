@@ -82,37 +82,28 @@ export async function handleMessage(
     try {
       const referencedMessage = await message.fetchReference();
       isReplyToBot = referencedMessage.author.id === botId;
-      console.log(`- Is Reply to Bot: ${isReplyToBot}`);
     } catch (error) {
-      console.log(`- Reply check failed: ${error instanceof Error ? error.message : 'Unknown error'}`);
+      // Ignore if reference cannot be fetched
     }
   }
 
-  console.log(`- Criteria check: isMentioned=${isMentioned}, isInThread=${isInThread}, isDM=${isDM}, isReplyToBot=${isReplyToBot}`);
-
   // Respond if: mentioned in a channel, in a participating thread, in DMs, OR replying to bot
   if (!isMentioned && !isInThread && !isDM && !isReplyToBot) {
-    console.log(`- Decision: Ignoring message (no trigger met)`);
     return;
   }
 
   // If in a thread but not mentioned and not replying to bot, check if bot has participated before
   if (isInThread && !isMentioned && !isReplyToBot) {
-    console.log(`- Checking thread participation...`);
     const thread = message.channel;
     
     // Check if we've already joined/participated in this thread
     const messages = await thread.messages.fetch({ limit: 50 });
     const botHasParticipated = messages.some(m => m.author.id === botId);
-    console.log(`- Bot has participated in thread: ${botHasParticipated}`);
     
     if (!botHasParticipated) {
-      console.log(`- Decision: Ignoring thread message (bot not participated)`);
       return;
     }
   }
-
-  console.log(`- Decision: Processing message...`);
 
   // Extract the question by removing the bot mention
   const mentionPattern = new RegExp(`<@!?${botId}>`, 'g');
