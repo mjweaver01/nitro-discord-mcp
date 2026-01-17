@@ -77,6 +77,7 @@ client.on(Events.InteractionCreate, async interaction => {
 
 // Event: Message (for mentions and DMs)
 client.on(Events.MessageCreate, async message => {
+  console.log(`[Event] Message received from ${message.author.tag}: ${message.content}`);
   if (!client.user) return;
   await handleMessage(message, nitro, client.user.id);
 });
