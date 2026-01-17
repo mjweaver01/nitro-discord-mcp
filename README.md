@@ -39,6 +39,7 @@ A Discord bot that integrates with Nitro AI chatbot via MCP (Model Context Proto
    - Read Message History
    - Use Slash Commands
    - Create Public Threads
+   - Create Private Threads
    - Send Messages in Threads
 4. Copy the generated URL and open it in your browser to invite the bot
 
