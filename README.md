@@ -24,15 +24,17 @@ A Discord bot that integrates with Nitro AI chatbot via MCP (Model Context Proto
 2. Click "New Application" and give it a name
 3. Go to the "Bot" section and click "Add Bot"
 4. Under "Privileged Gateway Intents", enable:
-   - **Message Content Intent** (required for reading mentions)
-5. Copy the bot token (you'll need this for `DISCORD_TOKEN`)
-6. Go to "OAuth2" → "General" and copy the Client ID (for `DISCORD_CLIENT_ID`)
+   - **Message Content Intent** (Required for reading mentions and message content)
+5. Under "Installation", ensure **Guild Install** is configured with the `bot` and `applications.commands` scopes.
+6. Copy the bot token (you'll need this for `DISCORD_TOKEN`)
+7. Go to "OAuth2" → "General" and copy the Client ID (for `DISCORD_CLIENT_ID`)
 
 ### 2. Invite the Bot to Your Server
 
-1. Go to "OAuth2" → "URL Generator"
+1. Go to "Installation" or "OAuth2"
 2. Select scopes: `bot`, `applications.commands`
 3. Select bot permissions:
+   - View Channels
    - Send Messages
    - Read Message History
    - Use Slash Commands
