@@ -73,6 +73,17 @@ client.once(Events.ClientReady, async readyClient => {
   // Register slash commands on startup
   await registerCommands();
   
+  // DIAGNOSTIC: List all channels the bot can see
+  console.log('--- CHANNEL ACCESS CHECK ---');
+  client.guilds.cache.forEach(guild => {
+    console.log(`Guild: ${guild.name} (${guild.id})`);
+    const visibleChannels = guild.channels.cache
+      .filter(ch => ch.isTextBased())
+      .map(ch => ch.name);
+    console.log(`Visible Channels: ${visibleChannels.join(', ') || 'NONE'}`);
+  });
+  console.log('----------------------------');
+  
   console.log('Nitro Discord Bot is ready!');
 });
 
