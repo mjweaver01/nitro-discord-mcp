@@ -32,12 +32,14 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
-    GatewayIntentBits.GuildMembers, // Added for better mention handling
+    GatewayIntentBits.GuildMembers,
   ],
   partials: [
     Partials.Message,
     Partials.Channel,
-    Partials.User, // Added for DM support
+    Partials.User,
+    Partials.GuildMember,
+    Partials.ThreadMember,
   ],
 });
 
@@ -63,14 +65,27 @@ async function registerCommands(): Promise<void> {
 
 // Event: Bot is ready
 client.once(Events.ClientReady, async readyClient => {
-  console.log('='.repeat(30));
+  console.log('='.repeat(50));
   console.log(`✅ BOT CONNECTED: ${readyClient.user.tag}`);
+  console.log(`🆔 ID: ${readyClient.user.id}`);
   
   // LOG THE INTENTS GRANTED BY DISCORD
   const intentBits = Number(client.options.intents);
   console.log(`🔢 Intent Bitmask: ${intentBits}`);
   console.log(`📜 Has MessageContent Intent: ${(intentBits & Number(GatewayIntentBits.MessageContent)) !== 0}`);
-  console.log('='.repeat(30));
+  
+  // CHECK CHANNEL ACCESS
+  console.log('\n--- CHANNEL ACCESS CHECK ---');
+  client.guilds.cache.forEach(guild => {
+    console.log(`Guild: ${guild.name} (${guild.id})`);
+    guild.channels.cache.filter(c => c.isTextBased()).forEach(ch => {
+      const me = guild.members.me;
+      const canSee = me ? ch.permissionsFor(me).has('ViewChannel') : false;
+      const canReadHistory = me ? ch.permissionsFor(me).has('ReadMessageHistory') : false;
+      console.log(`  #${ch.name}: [View: ${canSee}] [History: ${canReadHistory}]`);
+    });
+  });
+  console.log('='.repeat(50));
   
   await registerCommands();
   console.log('Nitro Discord Bot is ready!');
