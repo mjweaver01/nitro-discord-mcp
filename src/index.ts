@@ -91,7 +91,14 @@ process.on('unhandledRejection', error => {
   console.error('Unhandled promise rejection:', error);
 });
 
+// Debug: Log all raw gateway packets
+client.on('raw', packet => {
+  if (packet.t === 'MESSAGE_CREATE' || packet.t === 'INTERACTION_CREATE') {
+    console.log(`[Raw Gateway] Received ${packet.t}`);
+  }
+});
+
 // Start the bot
-console.log('Starting Nitro Discord Bot...');
+console.log('--- DEBUG VERSION 2.0 STARTING ---');
 client.login(DISCORD_TOKEN);
 
