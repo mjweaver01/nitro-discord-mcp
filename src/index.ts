@@ -32,10 +32,12 @@ const client = new Client({
     GatewayIntentBits.GuildMessages,
     GatewayIntentBits.MessageContent,
     GatewayIntentBits.DirectMessages,
+    GatewayIntentBits.GuildMembers, // Added for better mention handling
   ],
   partials: [
     Partials.Message,
     Partials.Channel,
+    Partials.User, // Added for DM support
   ],
 });
 
@@ -70,21 +72,30 @@ client.once(Events.ClientReady, async readyClient => {
   console.log(`📜 Has MessageContent Intent: ${(intentBits & Number(GatewayIntentBits.MessageContent)) !== 0}`);
   console.log('='.repeat(30));
   
-  // Register slash commands on startup
   await registerCommands();
-  
-  // DIAGNOSTIC: List all channels the bot can see
-  console.log('--- CHANNEL ACCESS CHECK ---');
-  client.guilds.cache.forEach(guild => {
-    console.log(`Guild: ${guild.name} (${guild.id})`);
-    const visibleChannels = guild.channels.cache
-      .filter(ch => ch.isTextBased())
-      .map(ch => ch.name);
-    console.log(`Visible Channels: ${visibleChannels.join(', ') || 'NONE'}`);
-  });
-  console.log('----------------------------');
-  
   console.log('Nitro Discord Bot is ready!');
+});
+
+// DIAGNOSTIC: Log when a guild becomes available
+client.on(Events.GuildCreate, guild => {
+  console.log(`\n[Diagnostic] Guild Available: ${guild.name} (${guild.id})`);
+  
+  // Find the 'nitro' channel and check permissions
+  const nitroChannel = guild.channels.cache.find(c => c.name.toLowerCase() === 'nitro');
+  if (nitroChannel && nitroChannel.isTextBased()) {
+    const me = guild.members.me;
+    if (me) {
+      const perms = me.permissionsIn(nitroChannel);
+      console.log(`[Diagnostic] My permissions in #nitro:`);
+      console.log(`- View Channel: ${perms.has('ViewChannel')}`);
+      console.log(`- Send Messages: ${perms.has('SendMessages')}`);
+      console.log(`- Read History: ${perms.has('ReadMessageHistory')}`);
+      console.log(`- Use Slash Commands: ${perms.has('UseApplicationCommands')}`);
+    }
+  } else {
+    console.log(`[Diagnostic] Could not find #nitro channel in this guild.`);
+    console.log(`[Diagnostic] Available channels: ${guild.channels.cache.filter(c => c.isTextBased()).map(c => c.name).join(', ')}`);
+  }
 });
 
 // Event: Slash command interaction
