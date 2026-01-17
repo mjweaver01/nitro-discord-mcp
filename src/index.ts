@@ -61,7 +61,14 @@ async function registerCommands(): Promise<void> {
 
 // Event: Bot is ready
 client.once(Events.ClientReady, async readyClient => {
-  console.log(`Logged in as ${readyClient.user.tag}`);
+  console.log('='.repeat(30));
+  console.log(`✅ BOT CONNECTED: ${readyClient.user.tag}`);
+  
+  // LOG THE INTENTS GRANTED BY DISCORD
+  const intentBits = Number(client.options.intents);
+  console.log(`🔢 Intent Bitmask: ${intentBits}`);
+  console.log(`📜 Has MessageContent Intent: ${(intentBits & Number(GatewayIntentBits.MessageContent)) !== 0}`);
+  console.log('='.repeat(30));
   
   // Register slash commands on startup
   await registerCommands();
@@ -93,9 +100,14 @@ process.on('unhandledRejection', error => {
 
 // Debug: Log all raw gateway packets
 client.on('raw', packet => {
-  if (packet.t === 'MESSAGE_CREATE' || packet.t === 'INTERACTION_CREATE') {
-    console.log(`[Raw Gateway] Received ${packet.t}`);
+  if (packet.t) {
+    console.log(`[Raw Gateway] Received Packet: ${packet.t}`);
   }
+});
+
+// Deep Debug: Log internal discord.js events
+client.on('debug', info => {
+  console.log(`[Discord.js Debug] ${info}`);
 });
 
 // Start the bot
