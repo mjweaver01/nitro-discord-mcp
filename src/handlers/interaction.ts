@@ -1,6 +1,7 @@
 import { Interaction, ChatInputCommandInteraction } from 'discord.js';
 import type { NitroMCPClient } from '../nitro-client';
 import * as askCommand from '../commands/ask';
+import { defaultRateLimiter } from '../utils/rate-limiter';
 
 // Command registry
 const commands = new Map<string, typeof askCommand>();
@@ -21,6 +22,18 @@ export async function handleInteraction(
 
   if (!command) {
     console.error(`Unknown command: ${interaction.commandName}`);
+    return;
+  }
+
+  // Rate limiting check
+  const rateLimit = defaultRateLimiter.check(interaction.user.id);
+  if (!rateLimit.allowed) {
+    const waitSeconds = Math.ceil(rateLimit.resetMs / 1000);
+    const message = 
+      `You've reached your rate limit! Please wait about ${waitSeconds} second${waitSeconds === 1 ? '' : 's'} before trying again.\n\n` +
+      `💡 **Want unlimited access?** Use the full app at https://nitro.westside-barbell.com`;
+    
+    await interaction.reply({ content: message, ephemeral: true });
     return;
   }
 

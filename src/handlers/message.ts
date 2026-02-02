@@ -1,5 +1,6 @@
 import { Message, ChannelType } from 'discord.js';
 import type { NitroMCPClient, NitroMessage } from '../nitro-client';
+import { defaultRateLimiter } from '../utils/rate-limiter';
 
 /**
  * Fetch conversation history from the channel
@@ -115,6 +116,17 @@ export async function handleMessage(
     return;
   }
 
+  // Rate limiting check
+  const rateLimit = defaultRateLimiter.check(message.author.id);
+  if (!rateLimit.allowed) {
+    const waitSeconds = Math.ceil(rateLimit.resetMs / 1000);
+    await message.reply(
+      `You've reached your limit! Please wait about ${waitSeconds} second${waitSeconds === 1 ? '' : 's'} before asking another question.\n\n` +
+      `💡 **Want unlimited access?** Get full app at https://nitro.westside-barbell.com`
+    );
+    return;
+  }
+
   try {
     // Show typing indicator (check if channel supports it)
     const channel = message.channel;
@@ -160,6 +172,15 @@ export async function handleMessage(
       if ('send' in channel) {
         await channel.send(chunks[i]);
       }
+    }
+
+    // Add a helpful reminder about rate limits if user is running low
+    const currentLimit = defaultRateLimiter.peek(message.author.id);
+    if (currentLimit.remaining <= 1 && 'send' in channel) {
+      await channel.send(
+        `_You have ${currentLimit.remaining} request${currentLimit.remaining === 1 ? '' : 's'} remaining. ` +
+        `For unlimited access, visit https://nitro.westside-barbell.com_`
+      );
     }
 
     console.log(`[@mention] Responded to ${message.author.tag}`);

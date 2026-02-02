@@ -4,6 +4,7 @@ import {
   ChannelType,
 } from 'discord.js';
 import type { NitroMCPClient, NitroMessage } from '../nitro-client';
+import { defaultRateLimiter } from '../utils/rate-limiter';
 
 export const data = new SlashCommandBuilder()
   .setName('ask')
@@ -86,6 +87,16 @@ export async function execute(
     // Send remaining chunks as follow-ups
     for (let i = 1; i < chunks.length; i++) {
       await interaction.followUp(chunks[i]);
+    }
+
+    // Check rate limit status and show reminder if running low
+    const rateLimit = defaultRateLimiter.peek(userId);
+    if (rateLimit.remaining <= 1) {
+      await interaction.followUp({
+        content: `_You have ${rateLimit.remaining} request${rateLimit.remaining === 1 ? '' : 's'} remaining. ` +
+          `For unlimited access, visit https://nitro.westside-barbell.com_`,
+        ephemeral: true
+      });
     }
 
     // Create a thread if requested
