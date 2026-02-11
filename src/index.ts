@@ -19,6 +19,14 @@ if (!process.env.DISCORD_CLIENT_ID) {
   throw new Error('DISCORD_CLIENT_ID environment variable is required');
 }
 
+if (!process.env.NITRO_BASE_URL) {
+  throw new Error('NITRO_BASE_URL environment variable is required');
+}
+
+if (!process.env.NITRO_API_KEY) {
+  throw new Error('NITRO_API_KEY environment variable is required');
+}
+
 const DISCORD_TOKEN = process.env.DISCORD_TOKEN;
 const DISCORD_CLIENT_ID = process.env.DISCORD_CLIENT_ID;
 

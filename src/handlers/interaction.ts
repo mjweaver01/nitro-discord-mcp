@@ -28,13 +28,16 @@ export async function handleInteraction(
     await command.execute(interaction as ChatInputCommandInteraction, nitro, botId);
   } catch (error) {
     console.error(`Error executing command ${interaction.commandName}:`, error);
-
     const errorMessage = 'There was an error executing this command.';
 
-    if (interaction.replied || interaction.deferred) {
-      await interaction.followUp({ content: errorMessage, ephemeral: true });
-    } else {
-      await interaction.reply({ content: errorMessage, ephemeral: true });
+    try {
+      if (interaction.replied || interaction.deferred) {
+        await interaction.followUp({ content: errorMessage, ephemeral: true });
+      } else {
+        await interaction.reply({ content: errorMessage, ephemeral: true });
+      }
+    } catch (replyError) {
+      console.error('Failed to send error response to user:', replyError);
     }
   }
 }

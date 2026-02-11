@@ -115,6 +115,9 @@ export async function handleMessage(
     return;
   }
 
+  // Typing indicator interval reference
+  let typingInterval: NodeJS.Timeout | null = null;
+  
   try {
     // Show typing indicator (check if channel supports it)
     const channel = message.channel;
@@ -123,7 +126,7 @@ export async function handleMessage(
     }
 
     // Keep typing indicator active for longer responses
-    const typingInterval = setInterval(() => {
+    typingInterval = setInterval(() => {
       if ('sendTyping' in channel) {
         channel.sendTyping().catch(() => {});
       }
@@ -148,6 +151,7 @@ export async function handleMessage(
 
     // Clear typing indicator
     clearInterval(typingInterval);
+    typingInterval = null;
 
     // Handle Discord's 2000 character limit
     const chunks = splitMessage(response);
@@ -170,9 +174,18 @@ export async function handleMessage(
       ? error.message 
       : 'An unknown error occurred';
     
-    await message.reply(
-      `Sorry, I encountered an error: ${errorMessage}`
-    );
+    try {
+      await message.reply(
+        `Sorry, I encountered an error: ${errorMessage}`
+      );
+    } catch (replyError) {
+      console.error('[@mention] Failed to send error message:', replyError);
+    }
+  } finally {
+    // Always clear the typing interval, even if an error occurred
+    if (typingInterval) {
+      clearInterval(typingInterval);
+    }
   }
 }
 
